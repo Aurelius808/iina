@@ -32,6 +32,7 @@ fileprivate extension Process {
   func keychainWrite(_ service: String, _ name: String, _ password: String) -> Any
   func keychainRead(_ service: String, _ name: String) -> Any
   func open(_ url: String) -> Bool
+  func locale() -> String
 }
 
 class JavascriptAPIUtils: JavascriptAPI, JavascriptAPIUtilsExportable {
@@ -266,5 +267,9 @@ class JavascriptAPIUtils: JavascriptAPI, JavascriptAPIUtilsExportable {
       NSWorkspace.shared.open(fileURL)
       return true
     } ?? false
+  }
+
+  func locale() -> String {
+    return Bundle.main.preferredLocalizations.first ?? "en"
   }
 }

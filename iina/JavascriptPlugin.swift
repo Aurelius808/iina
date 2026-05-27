@@ -355,7 +355,27 @@ class JavascriptPlugin: NSObject {
     }
 
     self.root = url
-    self.name = name
+
+    // Resolve localized value from the optional l10n block in Info.json.
+    // Keys in l10n match lproj directory names (e.g. "zh-Hans", "fr", "en-GB").
+    // The structure mirrors Info.json itself, e.g.:
+    //   "l10n": { "zh-Hans": { "name": "…", "description": "…", "sidebarTab": { "name": "…" } } }
+    // We walk IINA's preferred localization list and return the first match.
+    let l10nDict = jsonDict["l10n"] as? [String: [String: Any]] ?? [:]
+    func l10n(_ key: String, _ fallback: String?) -> String? {
+      for lang in Bundle.main.preferredLocalizations {
+        if let value = l10nDict[lang]?[key] as? String { return value }
+      }
+      return fallback
+    }
+    func l10nNested(_ key: String, _ subKey: String, _ fallback: String?) -> String? {
+      for lang in Bundle.main.preferredLocalizations {
+        if let value = (l10nDict[lang]?[key] as? [String: Any])?[subKey] as? String { return value }
+      }
+      return fallback
+    }
+
+    self.name = l10n("name", name) ?? name
     self.version = version
     self.entryPath = entry
     self.globalEntryPath = jsonDict["globalEntry"] as? String
@@ -363,18 +383,18 @@ class JavascriptPlugin: NSObject {
     self.authorURL = author["url"]
     self.authorEmail = author["email"]
     self.identifier = identifier
-    self.desc = jsonDict["description"] as? String
+    self.desc = l10n("description", jsonDict["description"] as? String)
     self.preferencesPage = jsonDict["preferencesPage"] as? String
     self.helpPage = jsonDict["helpPage"] as? String
     self.domainList = (jsonDict["allowedDomains"] as? [String]) ?? []
     self.subProviders = jsonDict["subtitleProviders"] as? [[String: String]]
-    
+
     if externalURL != nil {
       self.isExternal = true
     }
 
     if let sidebarTabDef = jsonDict["sidebarTab"] as? [String: String] {
-      self.sidebarTabName = sidebarTabDef["name"]
+      self.sidebarTabName = l10nNested("sidebarTab", "name", sidebarTabDef["name"])
     } else {
       self.sidebarTabName = nil
     }
