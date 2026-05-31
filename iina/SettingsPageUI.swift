@@ -498,9 +498,9 @@ fileprivate class OSCLayoutView: WithSettingsLocalizationContext, SettingsContai
     container.translatesAutoresizingMaskIntoConstraints = false
 
     self.imageViews = [
-      NSImageView(image: .init(named: "osc_float")!),
-      NSImageView(image: .init(named: "osc_top")!),
-      NSImageView(image: .init(named: "osc_bottom")!),
+      NSImageView(image: .oscFloat),
+      NSImageView(image: .oscTop),
+      NSImageView(image: .oscBottom),
     ]
 
     imageViews.forEach { iv in

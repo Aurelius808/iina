@@ -803,11 +803,11 @@ class PlaylistViewController: NSViewController, NSTableViewDataSource, NSTableVi
         if isSingleItem {
           result.addItem(withTitle: String(format: NSLocalizedString("pl_menu.matched_sub", comment: "Matched %d Subtitle(s)"), matchedSubCount))
           result.addItem(withTitle: NSLocalizedString("pl_menu.add_sub", comment: "Add Subtitle…"), action: #selector(self.contextMenuAddSubtitle(_:)))
-            .image = .init(named: "custom.captions.bubble.badge.plus")
+            .image = .customCaptionsBubbleBadgePlus
         }
         if matchedSubCount != 0 {
           result.addItem(withTitle: NSLocalizedString("pl_menu.wrong_sub", comment: "Wrong Subtitle"), action: #selector(self.contextMenuWrongSubtitle(_:)))
-            .image = .init(named: "custom.captions.bubble.slash")
+            .image = .customCaptionsBubbleSlash
         }
       }
 
