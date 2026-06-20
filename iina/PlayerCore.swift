@@ -2122,6 +2122,10 @@ class PlayerCore: NSObject {
 
     info.state = .loaded
 
+    if mpv.getDouble(MPVOption.PlaybackControl.speed) != 1 {
+      setSpeed(1)
+    }
+
     // Must force drawing to cover the case where this player was previously used to play a video
     // and is now playing an audio file without an album cover and without using music mode.
     // See issue #5403.
