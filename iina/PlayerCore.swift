@@ -135,6 +135,7 @@ class PlayerCore: NSObject {
   // MARK: - Fields
 
   private var observers: [NSObjectProtocol] = []
+  private var normalSpeedResetGeneration = 0
 
   lazy var subsystem = Logger.makeSubsystem("player\(label!)", ["play.circle"])
 
@@ -1300,6 +1301,31 @@ class PlayerCore: NSObject {
     mpv.setDouble(MPVOption.PlaybackControl.speed, speed)
   }
 
+  private func resetPlaybackSpeedForNewFile() {
+    if mpv.getDouble(MPVOption.PlaybackControl.speed) != 1 {
+      log("Resetting playback speed to 1x for new file", level: .verbose)
+      setSpeed(1)
+    }
+    info.playSpeed = 1
+    mainWindow.speedValueIndex = AppData.availableSpeedValues.count / 2
+    mainWindow.updateSpeedLabel(speed: 1)
+  }
+
+  private func scheduleNormalPlaybackSpeedReset() {
+    normalSpeedResetGeneration += 1
+    let generation = normalSpeedResetGeneration
+    let fileID = info.mpvMd5
+    [0.15, 0.75, 1.5].forEach { delay in
+      DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+        guard let self,
+              self.normalSpeedResetGeneration == generation,
+              self.info.state.active,
+              self.info.mpvMd5 == fileID else { return }
+        self.resetPlaybackSpeedForNewFile()
+      }
+    }
+  }
+
   func setVideoAspect(_ aspect: String) {
     if Regex.aspect.matches(aspect) {
       mpv.setString(MPVOption.Video.videoAspectOverride, aspect)
@@ -2039,6 +2065,8 @@ class PlayerCore: NSObject {
     if let url = info.currentURL {
       info.mpvMd5 = Utility.mpvWatchLaterMd5(url, ignorePathInWatchLaterConfig)
     }
+    resetPlaybackSpeedForNewFile()
+    scheduleNormalPlaybackSpeedReset()
     info.isNetworkResource = !info.currentURL!.isFileURL
 
     // set "date last opened" attribute
@@ -2122,9 +2150,8 @@ class PlayerCore: NSObject {
 
     info.state = .loaded
 
-    if mpv.getDouble(MPVOption.PlaybackControl.speed) != 1 {
-      setSpeed(1)
-    }
+    resetPlaybackSpeedForNewFile()
+    scheduleNormalPlaybackSpeedReset()
 
     // Must force drawing to cover the case where this player was previously used to play a video
     // and is now playing an audio file without an album cover and without using music mode.

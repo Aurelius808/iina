@@ -2,6 +2,10 @@ import Cocoa
 import MetalKit
 import QuartzCore
 
+private final class LilithControlButton: NSButton {
+  override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 final class LilithJamView: NSView {
   private enum PetDance: CaseIterable {
     case bounce
@@ -18,11 +22,16 @@ final class LilithJamView: NSView {
   private let metalView = MTKView()
   private let controlsView = NSView()
   private let presetPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-  private let rewindButton = NSButton()
-  private let playPauseButton = NSButton()
-  private let stopButton = NSButton()
-  private let forwardButton = NSButton()
-  private let nextPresetButton = NSButton()
+  private let previousTrackButton = LilithControlButton()
+  private let rewindButton = LilithControlButton()
+  private let playPauseButton = LilithControlButton()
+  private let stopButton = LilithControlButton()
+  private let forwardButton = LilithControlButton()
+  private let nextTrackButton = LilithControlButton()
+  private let repeatButton = LilithControlButton()
+  private let shuffleButton = LilithControlButton()
+  private let playlistButton = LilithControlButton()
+  private let nextPresetButton = LilithControlButton()
   private let petImageView = NSImageView()
   private var renderer: LilithMetalRenderer?
   private var audioTap: LilithAudioTap?
@@ -33,6 +42,8 @@ final class LilithJamView: NSView {
   private var petSequence: [Int] = []
   private var petFrameIndex = 0
   private var lastPetBeatTime: TimeInterval = 0
+  private var lastPetEnergy: Float = 0
+  private var petPosition = CGPoint(x: 0.20, y: 0.18)
   private weak var player: PlayerCore?
 
   override var acceptsFirstResponder: Bool { true }
@@ -81,12 +92,20 @@ final class LilithJamView: NSView {
 
   override func hitTest(_ point: NSPoint) -> NSView? {
     guard !isHidden else { return nil }
-    let controlsPoint = controlsView.convert(point, from: self)
-    return controlsView.hitTest(controlsPoint)
+    let target = super.hitTest(point)
+    if target === self || target === metalView || target === petImageView {
+      return nil
+    }
+    return target
   }
 
   override func mouseUp(with event: NSEvent) {
     advancePreset()
+  }
+
+  override func layout() {
+    super.layout()
+    updatePetLayout(animated: false)
   }
 
   override func keyDown(with event: NSEvent) {
@@ -94,7 +113,7 @@ final class LilithJamView: NSView {
     case "j", "n":
       advancePreset()
     case " ":
-      player?.togglePause()
+      togglePlayPause()
     default:
       if event.keyCode == 124 {
         advancePreset()
@@ -119,7 +138,7 @@ final class LilithJamView: NSView {
   }
 
   private func installPetView() {
-    petImageView.translatesAutoresizingMaskIntoConstraints = false
+    petImageView.translatesAutoresizingMaskIntoConstraints = true
     petImageView.imageScaling = .scaleProportionallyUpOrDown
     petImageView.wantsLayer = true
     petImageView.layer?.zPosition = 4
@@ -128,12 +147,7 @@ final class LilithJamView: NSView {
     petImageView.layer?.shadowRadius = 10
     petImageView.layer?.shadowOffset = CGSize(width: 0, height: -2)
     addSubview(petImageView)
-    NSLayoutConstraint.activate([
-      petImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 22),
-      petImageView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10),
-      petImageView.widthAnchor.constraint(equalToConstant: 82),
-      petImageView.heightAnchor.constraint(equalToConstant: 98),
-    ])
+    updatePetLayout(animated: false)
   }
 
   private func installPresetControls() {
@@ -146,14 +160,15 @@ final class LilithJamView: NSView {
     controlsView.layer?.masksToBounds = true
     controlsView.layer?.zPosition = 10
 
-    let titleLabel = NSTextField(labelWithString: "Visuals")
-    titleLabel.textColor = NSColor.white.withAlphaComponent(0.9)
-    titleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-
+    configureControlButton(previousTrackButton, symbol: "backward.end.fill", fallbackTitle: "Prev", action: #selector(previousTrack), label: "Previous track")
     configureControlButton(rewindButton, symbol: "gobackward.10", fallbackTitle: "-10", action: #selector(seekBackward), label: "Back 10 seconds")
     configureControlButton(playPauseButton, symbol: "pause.fill", fallbackTitle: "Pause", action: #selector(togglePlayPause), label: "Play or pause")
     configureControlButton(stopButton, symbol: "stop.fill", fallbackTitle: "Stop", action: #selector(stopPlayback), label: "Stop")
     configureControlButton(forwardButton, symbol: "goforward.10", fallbackTitle: "+10", action: #selector(seekForward), label: "Forward 10 seconds")
+    configureControlButton(nextTrackButton, symbol: "forward.end.fill", fallbackTitle: "Next", action: #selector(nextTrack), label: "Next track")
+    configureControlButton(repeatButton, symbol: "repeat.1", fallbackTitle: "Repeat", action: #selector(toggleAutoReplay), label: "Auto replay")
+    configureControlButton(shuffleButton, symbol: "shuffle", fallbackTitle: "Random", action: #selector(shufflePlaylist), label: "Random playlist")
+    configureControlButton(playlistButton, symbol: "list.bullet", fallbackTitle: "List", action: #selector(togglePlaylistPanel), label: "Playlist")
 
     presetPopup.addItems(withTitles: model.presets.map(\.name))
     presetPopup.target = self
@@ -164,18 +179,22 @@ final class LilithJamView: NSView {
     configureControlButton(nextPresetButton, symbol: "sparkles", fallbackTitle: "Next", action: #selector(selectNextPreset), label: "Next visual")
 
     let stack = NSStackView(views: [
+      previousTrackButton,
       rewindButton,
       playPauseButton,
       stopButton,
       forwardButton,
-      titleLabel,
+      nextTrackButton,
+      repeatButton,
+      shuffleButton,
+      playlistButton,
       presetPopup,
       nextPresetButton,
     ])
     stack.translatesAutoresizingMaskIntoConstraints = false
     stack.orientation = .horizontal
     stack.alignment = .centerY
-    stack.spacing = 8
+    stack.spacing = 5
 
     controlsView.addSubview(stack)
     addSubview(controlsView)
@@ -186,16 +205,27 @@ final class LilithJamView: NSView {
       stack.trailingAnchor.constraint(equalTo: controlsView.trailingAnchor, constant: -14),
       stack.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 10),
       stack.bottomAnchor.constraint(equalTo: controlsView.bottomAnchor, constant: -10),
-      presetPopup.widthAnchor.constraint(equalToConstant: 150),
-      rewindButton.widthAnchor.constraint(equalToConstant: 34),
-      playPauseButton.widthAnchor.constraint(equalToConstant: 38),
-      stopButton.widthAnchor.constraint(equalToConstant: 34),
-      forwardButton.widthAnchor.constraint(equalToConstant: 34),
-      nextPresetButton.widthAnchor.constraint(equalToConstant: 34),
+      presetPopup.widthAnchor.constraint(equalToConstant: 132),
     ])
-    [rewindButton, playPauseButton, stopButton, forwardButton, nextPresetButton].forEach {
+    transportButtons.forEach {
+      $0.widthAnchor.constraint(equalToConstant: 28).isActive = true
       $0.heightAnchor.constraint(equalToConstant: 28).isActive = true
     }
+  }
+
+  private var transportButtons: [LilithControlButton] {
+    [
+      previousTrackButton,
+      rewindButton,
+      playPauseButton,
+      stopButton,
+      forwardButton,
+      nextTrackButton,
+      repeatButton,
+      shuffleButton,
+      playlistButton,
+      nextPresetButton,
+    ]
   }
 
   private func configureControlButton(
@@ -216,6 +246,7 @@ final class LilithJamView: NSView {
   }
 
   private func setButtonImage(_ button: NSButton, symbol: String, fallbackTitle: String, label: String) {
+    button.setAccessibilityLabel(label)
     if #available(macOS 11.0, *) {
       button.title = ""
       let image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
@@ -237,9 +268,27 @@ final class LilithJamView: NSView {
     advancePreset()
   }
 
-  @objc private func togglePlayPause() {
-    player?.togglePause()
+  @objc private func previousTrack() {
+    player?.navigateInPlaylist(nextMedia: false)
     syncPlaybackControls()
+  }
+
+  @objc private func nextTrack() {
+    player?.navigateInPlaylist(nextMedia: true)
+    syncPlaybackControls()
+  }
+
+  @objc private func togglePlayPause() {
+    guard let player, player.info.state.active else { return }
+    if player.mpv.getFlag(MPVOption.PlaybackControl.pause) {
+      player.resume()
+    } else {
+      player.pause()
+    }
+    syncPlaybackControls()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+      self?.syncPlaybackControls()
+    }
   }
 
   @objc private func stopPlayback() {
@@ -255,6 +304,21 @@ final class LilithJamView: NSView {
     player?.seek(relativeSecond: 10, option: .relative)
   }
 
+  @objc private func toggleAutoReplay() {
+    guard let player else { return }
+    player.setLoopMode(player.getLoopMode() == .file ? .off : .file)
+    syncPlaybackControls()
+  }
+
+  @objc private func shufflePlaylist() {
+    player?.toggleShuffle()
+    syncPlaybackControls()
+  }
+
+  @objc private func togglePlaylistPanel() {
+    player?.mainWindow.sidebars.showPlaylist(tab: .playlist)
+  }
+
   private func syncPresetControls() {
     presetPopup.selectItem(at: model.presetIndex)
   }
@@ -262,14 +326,28 @@ final class LilithJamView: NSView {
   private func syncPlaybackControls() {
     guard let player else { return }
     let active = player.info.state.active
-    [rewindButton, playPauseButton, stopButton, forwardButton].forEach { $0.isEnabled = active }
-    let paused = player.info.state == .paused
+    [
+      previousTrackButton,
+      rewindButton,
+      playPauseButton,
+      stopButton,
+      forwardButton,
+      nextTrackButton,
+      repeatButton,
+      shuffleButton,
+    ].forEach { $0.isEnabled = active }
+    playlistButton.isEnabled = true
+    nextPresetButton.isEnabled = true
+    let paused = active && player.mpv.getFlag(MPVOption.PlaybackControl.pause)
     setButtonImage(
       playPauseButton,
       symbol: paused ? "play.fill" : "pause.fill",
       fallbackTitle: paused ? "Play" : "Pause",
       label: paused ? "Play" : "Pause"
     )
+    repeatButton.contentTintColor = player.getLoopMode() == .file
+      ? NSColor.systemGreen
+      : NSColor.white.withAlphaComponent(0.92)
   }
 
   private func start() {
@@ -345,7 +423,7 @@ final class LilithJamView: NSView {
       return
     }
     let columns = 8
-    let rows = 9
+    let rows = 5
     let frameWidth = sheet.width / columns
     let frameHeight = sheet.height / rows
     petFrames = (0..<(columns * rows)).compactMap { index in
@@ -357,23 +435,33 @@ final class LilithJamView: NSView {
     }
     petImageView.image = petFrames.first
     petImageView.isHidden = petFrames.isEmpty
+    updatePetLayout(animated: false)
   }
 
   private func handlePetBeat(_ frame: AudioFeatureFrame) {
-    guard frame.isBeat, !petFrames.isEmpty else { return }
+    guard !petFrames.isEmpty else { return }
     let now = frame.time > 0 ? frame.time : CACurrentMediaTime()
-    guard now - lastPetBeatTime > 0.22 else { return }
+    let energy = max(frame.rms * 0.45 + frame.bass * 0.40 + frame.mid * 0.15, frame.bass)
+    let transient = frame.isBeat || (energy > max(0.12, lastPetEnergy * 1.28) && energy - lastPetEnergy > 0.06)
+    lastPetEnergy = lastPetEnergy * 0.82 + energy * 0.18
+    guard transient, now - lastPetBeatTime > 0.18 else { return }
     lastPetBeatTime = now
-    startPetDance(PetDance.allCases.randomElement() ?? .bounce, intensity: max(frame.bass, frame.rms))
+    startPetDance(PetDance.allCases.randomElement() ?? .bounce, intensity: max(energy, frame.treble))
   }
 
   private func startPetDance(_ dance: PetDance, intensity: Float) {
+    petPosition = CGPoint(
+      x: CGFloat.random(in: 0.16...0.84),
+      y: CGFloat.random(in: 0.12...0.38)
+    )
+    updatePetLayout(animated: true)
+
     let sequences: [PetDance: [Int]] = [
-      .bounce: [0, 1, 2, 3, 4, 5, 4, 3],
-      .sway: [8, 9, 10, 11, 12, 13, 14, 15],
-      .hop: [16, 17, 18, 19, 20, 21, 22, 23],
-      .shimmy: [24, 25, 26, 27, 26, 25],
-      .pop: [32, 33, 34, 35, 36, 35, 34, 33],
+      .bounce: Array(0..<8),
+      .sway: Array(8..<16),
+      .hop: Array(16..<24),
+      .shimmy: Array(24..<32),
+      .pop: Array(32..<40),
     ]
     petSequence = sequences[dance] ?? [0]
     petFrameIndex = 0
@@ -386,6 +474,26 @@ final class LilithJamView: NSView {
       self?.advancePetFrame()
     }
     animatePetMotion(dance, intensity: intensity)
+  }
+
+  private func updatePetLayout(animated: Bool) {
+    guard bounds.width > 0, bounds.height > 0 else { return }
+    let side = min(max(min(bounds.width, bounds.height) * 0.24, 86), 190)
+    let frame = CGRect(
+      x: petPosition.x * max(bounds.width - side, 0),
+      y: petPosition.y * max(bounds.height - side, 0),
+      width: side,
+      height: side
+    )
+    if animated {
+      NSAnimationContext.runAnimationGroup { context in
+        context.duration = 0.16
+        context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+        petImageView.animator().frame = frame
+      }
+    } else {
+      petImageView.frame = frame
+    }
   }
 
   private func advancePetFrame() {
@@ -413,17 +521,19 @@ final class LilithJamView: NSView {
 
     switch dance {
     case .bounce:
-      add("transform.translation.y", [0, -4 * strength, 16 * strength, 0], "lilithBounce")
+      add("transform.translation.y", [0, -8 * strength, 24 * strength, -4 * strength, 0], "lilithBounce")
     case .sway:
-      add("transform.rotation.z", [-0.16 * strength, 0.18 * strength, -0.10 * strength, 0], "lilithSway")
+      add("transform.rotation.z", [-0.22 * strength, 0.24 * strength, -0.16 * strength, 0.12 * strength, 0], "lilithSway")
+      add("transform.translation.x", [-12 * strength, 12 * strength, -8 * strength, 0], "lilithSwayX")
     case .hop:
-      add("transform.translation.y", [0, 22 * strength, 4 * strength, 0], "lilithHopY")
-      add("transform.scale", [1, 1.08 + CGFloat(intensity) * 0.08, 0.96, 1], "lilithHopScale")
+      add("transform.translation.y", [0, 34 * strength, 8 * strength, 0], "lilithHopY")
+      add("transform.scale", [1, 1.16 + CGFloat(intensity) * 0.12, 0.92, 1], "lilithHopScale")
     case .shimmy:
-      add("transform.translation.x", [-9 * strength, 9 * strength, -6 * strength, 6 * strength, 0], "lilithShimmy")
+      add("transform.translation.x", [-15 * strength, 15 * strength, -12 * strength, 12 * strength, 0], "lilithShimmy")
+      add("transform.rotation.z", [0.10 * strength, -0.10 * strength, 0.08 * strength, -0.08 * strength, 0], "lilithShimmySpin")
     case .pop:
-      add("transform.rotation.z", [0, 0.28 * strength, -0.24 * strength, 0.10 * strength, 0], "lilithPopSpin")
-      add("transform.scale", [1, 1.12 + CGFloat(intensity) * 0.08, 0.98, 1], "lilithPopScale")
+      add("transform.rotation.z", [0, 0.45 * strength, -0.36 * strength, 0.18 * strength, 0], "lilithPopSpin")
+      add("transform.scale", [1, 1.24 + CGFloat(intensity) * 0.16, 0.90, 1.06, 1], "lilithPopScale")
     }
   }
 }

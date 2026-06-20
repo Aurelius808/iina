@@ -646,6 +646,16 @@ class MPVController: NSObject {
         watchLaterOptions += "," + MPVOption.Subtitles.secondarySubDelay
         needsUpdate = true
       }
+      let speedOption = MPVOption.PlaybackControl.speed
+      let filteredOptions = watchLaterOptions
+        .components(separatedBy: ",")
+        .filter { $0 != speedOption }
+        .joined(separator: ",")
+      if filteredOptions != watchLaterOptions {
+        log("Removing \(speedOption) from \(MPVOption.WatchLater.watchLaterOptions)")
+        watchLaterOptions = filteredOptions
+        needsUpdate = true
+      }
       if needsUpdate {
         chkErr(setOptionString(MPVOption.WatchLater.watchLaterOptions, watchLaterOptions, level: .verbose))
       }
