@@ -22,7 +22,7 @@ fileprivate let AlternativeMenuItemTag = 1
 
 
 @NSApplicationMain
-class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, NSMenuDelegate {
 
   /// The `AppDelegate` singleton object.
   static var shared: AppDelegate { NSApp.delegate as! AppDelegate }
@@ -103,10 +103,55 @@ class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
   @IBOutlet weak var dockMenu: NSMenu!
 
+  private let lilithPresetMenuTagBase = 61_600
+  private weak var lilithVisualsMenu: NSMenu?
+
   private func getReady() {
     menuController.bindMenuItems()
+    installLilithVisualsMenu()
     PlayerCore.loadKeyBindings()
     isReady = true
+  }
+
+  private func installLilithVisualsMenu() {
+    guard let mainMenu = NSApp.mainMenu, mainMenu.item(withTitle: "Visuals") == nil else { return }
+
+    let menuItem = NSMenuItem(title: "Visuals", action: nil, keyEquivalent: "")
+    let menu = NSMenu(title: "Visuals")
+    menu.delegate = self
+
+    let nextItem = NSMenuItem(title: "Next Visual", action: #selector(menuLilithNextVisual(_:)), keyEquivalent: "")
+    nextItem.target = self
+    menu.addItem(nextItem)
+    menu.addItem(NSMenuItem.separator())
+
+    for (index, preset) in LilithPreset.builtIns.enumerated() {
+      let item = NSMenuItem(title: preset.name, action: #selector(menuLilithSelectVisual(_:)), keyEquivalent: "")
+      item.target = self
+      item.tag = lilithPresetMenuTagBase + index
+      menu.addItem(item)
+    }
+
+    menuItem.submenu = menu
+    let insertIndex = mainMenu.indexOfItem(withTitle: "Subtitles")
+    mainMenu.insertItem(menuItem, at: insertIndex == -1 ? max(mainMenu.numberOfItems - 2, 1) : insertIndex)
+    lilithVisualsMenu = menu
+  }
+
+  func menuWillOpen(_ menu: NSMenu) {
+    guard menu === lilithVisualsMenu else { return }
+    let selectedIndex = PlayerCore.lastActive.mainWindow.lilithJamView.presetIndex
+    for item in menu.items where item.tag >= lilithPresetMenuTagBase {
+      item.state = item.tag - lilithPresetMenuTagBase == selectedIndex ? .on : .off
+    }
+  }
+
+  @objc private func menuLilithNextVisual(_ sender: NSMenuItem) {
+    PlayerCore.lastActive.mainWindow.lilithJamView.advancePreset()
+  }
+
+  @objc private func menuLilithSelectVisual(_ sender: NSMenuItem) {
+    PlayerCore.lastActive.mainWindow.lilithJamView.selectPreset(at: sender.tag - lilithPresetMenuTagBase)
   }
 
   // MARK: - Logs

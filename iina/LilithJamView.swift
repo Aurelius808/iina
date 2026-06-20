@@ -8,10 +8,15 @@ final class LilithJamView: NSView {
   )
   private let analyzer = LilithAudioAnalyzer()
   private let metalView = MTKView()
+  private let controlsView = NSView()
+  private let presetPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+  private let nextPresetButton = NSButton()
   private var renderer: LilithMetalRenderer?
   private var audioTap: LilithAudioTap?
   private var fallbackTimer: Timer?
   private weak var player: PlayerCore?
+
+  override var acceptsFirstResponder: Bool { true }
 
   init(player: PlayerCore) {
     self.player = player
@@ -20,6 +25,7 @@ final class LilithJamView: NSView {
     layer?.backgroundColor = NSColor.black.cgColor
     translatesAutoresizingMaskIntoConstraints = false
     installMetalView()
+    installPresetControls()
   }
 
   required init?(coder: NSCoder) {
@@ -28,15 +34,56 @@ final class LilithJamView: NSView {
 
   func setActive(_ active: Bool) {
     isHidden = !active
-    active ? start() : stop()
+    if active {
+      start()
+      window?.makeFirstResponder(self)
+    } else {
+      stop()
+    }
   }
 
   func advancePreset() {
     renderer?.advancePreset()
+    syncPresetControls()
+  }
+
+  func selectPreset(at index: Int) {
+    guard model.presets.indices.contains(index) else { return }
+    model.selectPreset(id: model.presets[index].id)
+    syncPresetControls()
+  }
+
+  var presetIndex: Int {
+    model.presetIndex
+  }
+
+  override func hitTest(_ point: NSPoint) -> NSView? {
+    guard !isHidden else { return nil }
+    let controlsPoint = controlsView.convert(point, from: self)
+    return controlsView.hitTest(controlsPoint)
+  }
+
+  override func mouseUp(with event: NSEvent) {
+    advancePreset()
+  }
+
+  override func keyDown(with event: NSEvent) {
+    switch event.charactersIgnoringModifiers?.lowercased() {
+    case "j", "n", " ":
+      advancePreset()
+    default:
+      if event.keyCode == 124 {
+        advancePreset()
+      } else {
+        super.keyDown(with: event)
+      }
+    }
   }
 
   private func installMetalView() {
     metalView.translatesAutoresizingMaskIntoConstraints = false
+    metalView.wantsLayer = true
+    metalView.layer?.zPosition = 0
     addSubview(metalView)
     NSLayoutConstraint.activate([
       metalView.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -45,6 +92,74 @@ final class LilithJamView: NSView {
       metalView.bottomAnchor.constraint(equalTo: bottomAnchor),
     ])
     renderer = LilithMetalRenderer(mtkView: metalView, model: model)
+  }
+
+  private func installPresetControls() {
+    controlsView.translatesAutoresizingMaskIntoConstraints = false
+    controlsView.wantsLayer = true
+    controlsView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.72).cgColor
+    controlsView.layer?.borderColor = NSColor.white.withAlphaComponent(0.18).cgColor
+    controlsView.layer?.borderWidth = 1
+    controlsView.layer?.cornerRadius = 8
+    controlsView.layer?.masksToBounds = true
+    controlsView.layer?.zPosition = 10
+
+    let titleLabel = NSTextField(labelWithString: "Visuals")
+    titleLabel.textColor = NSColor.white.withAlphaComponent(0.9)
+    titleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+
+    presetPopup.addItems(withTitles: model.presets.map(\.name))
+    presetPopup.target = self
+    presetPopup.action = #selector(selectPresetFromPopup(_:))
+    presetPopup.controlSize = .small
+    presetPopup.setAccessibilityLabel("Visuals")
+
+    nextPresetButton.target = self
+    nextPresetButton.action = #selector(selectNextPreset)
+    nextPresetButton.bezelStyle = .texturedRounded
+    nextPresetButton.controlSize = .small
+    nextPresetButton.setAccessibilityLabel("Next visual")
+    if #available(macOS 11.0, *) {
+      nextPresetButton.title = ""
+      nextPresetButton.image = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: "Next visual")
+    } else {
+      nextPresetButton.title = "Next"
+    }
+
+    let stack = NSStackView(views: [titleLabel, presetPopup, nextPresetButton])
+    stack.translatesAutoresizingMaskIntoConstraints = false
+    stack.orientation = .horizontal
+    stack.alignment = .centerY
+    stack.spacing = 8
+
+    controlsView.addSubview(stack)
+    addSubview(controlsView)
+    NSLayoutConstraint.activate([
+      controlsView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+      controlsView.topAnchor.constraint(equalTo: topAnchor, constant: 14),
+      stack.leadingAnchor.constraint(equalTo: controlsView.leadingAnchor, constant: 10),
+      stack.trailingAnchor.constraint(equalTo: controlsView.trailingAnchor, constant: -10),
+      stack.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 8),
+      stack.bottomAnchor.constraint(equalTo: controlsView.bottomAnchor, constant: -8),
+      presetPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 142),
+      nextPresetButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 28),
+      nextPresetButton.heightAnchor.constraint(equalToConstant: 24),
+    ])
+  }
+
+  @objc private func selectPresetFromPopup(_ sender: NSPopUpButton) {
+    let index = sender.indexOfSelectedItem
+    guard model.presets.indices.contains(index) else { return }
+    model.selectPreset(id: model.presets[index].id)
+    syncPresetControls()
+  }
+
+  @objc private func selectNextPreset() {
+    advancePreset()
+  }
+
+  private func syncPresetControls() {
+    presetPopup.selectItem(at: model.presetIndex)
   }
 
   private func start() {
