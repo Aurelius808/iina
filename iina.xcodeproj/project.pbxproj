@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4C494C495448000000000012 /* LilithJamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C494C495448000000000002 /* LilithJamView.swift */; };
+		4C494C495448000000000013 /* LilithAudioTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C494C495448000000000003 /* LilithAudioTap.swift */; };
+		4C494C495448000000000014 /* AudioFeatureFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C494C495448000000000004 /* AudioFeatureFrame.swift */; };
+		4C494C495448000000000015 /* LilithPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C494C495448000000000005 /* LilithPreset.swift */; };
+		4C494C495448000000000016 /* LilithVisualizerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C494C495448000000000006 /* LilithVisualizerModel.swift */; };
+		4C494C495448000000000017 /* LilithAudioAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C494C495448000000000007 /* LilithAudioAnalyzer.swift */; };
+		4C494C495448000000000018 /* LilithMetalRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C494C495448000000000008 /* LilithMetalRenderer.swift */; };
 		1326717E20852D0D000FA7E2 /* SubChooseViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 1326718020852D0D000FA7E2 /* SubChooseViewController.xib */; };
 		3412DB8E2C2FC64C00BBC142 /* Equalizations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3412DB8D2C2FC64800BBC142 /* Equalizations.swift */; };
 		3415BC8A2FC82FD9003B3FBD /* TimePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3415BC892FC82FD5003B3FBD /* TimePreviewView.swift */; };
@@ -637,6 +644,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4C494C495448000000000002 /* LilithJamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iina/LilithJamView.swift; sourceTree = SOURCE_ROOT; };
+		4C494C495448000000000003 /* LilithAudioTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iina/LilithAudioTap.swift; sourceTree = SOURCE_ROOT; };
+		4C494C495448000000000004 /* AudioFeatureFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LilithVisualCore/Sources/LilithVisualCore/AudioFeatureFrame.swift; sourceTree = SOURCE_ROOT; };
+		4C494C495448000000000005 /* LilithPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LilithVisualCore/Sources/LilithVisualCore/LilithPreset.swift; sourceTree = SOURCE_ROOT; };
+		4C494C495448000000000006 /* LilithVisualizerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LilithVisualCore/Sources/LilithVisualCore/LilithVisualizerModel.swift; sourceTree = SOURCE_ROOT; };
+		4C494C495448000000000007 /* LilithAudioAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LilithVisualCore/Sources/LilithVisualCore/LilithAudioAnalyzer.swift; sourceTree = SOURCE_ROOT; };
+		4C494C495448000000000008 /* LilithMetalRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LilithVisualCore/Sources/LilithVisualCore/LilithMetalRenderer.swift; sourceTree = SOURCE_ROOT; };
 		0507C25E2B5617650043AD05 /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/MainMenu.strings; sourceTree = "<group>"; };
 		0507C25F2B5617660043AD05 /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/MainWindowController.strings; sourceTree = "<group>"; };
 		0507C2612B5617660043AD05 /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/PlaylistViewController.strings; sourceTree = "<group>"; };
@@ -2180,6 +2194,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4C494C495448000000000001 /* Lilith */ = {
+			isa = PBXGroup;
+			children = (
+				4C494C495448000000000002 /* LilithJamView.swift */,
+				4C494C495448000000000003 /* LilithAudioTap.swift */,
+				4C494C495448000000000004 /* AudioFeatureFrame.swift */,
+				4C494C495448000000000005 /* LilithPreset.swift */,
+				4C494C495448000000000006 /* LilithVisualizerModel.swift */,
+				4C494C495448000000000007 /* LilithAudioAnalyzer.swift */,
+				4C494C495448000000000008 /* LilithMetalRenderer.swift */,
+			);
+			name = Lilith;
+			sourceTree = "<group>";
+		};
 		49542976216C34950058F680 /* OpenInIINA */ = {
 			isa = PBXGroup;
 			children = (
@@ -2690,6 +2718,7 @@
 			children = (
 				496498872919E47900CD61A5 /* Configs */,
 				84EB1ED81D2F51D3004FA5A1 /* iina */,
+				4C494C495448000000000001 /* Lilith */,
 				E3DE8DCB1FD8166A0021921C /* iina-cli */,
 				E38558882A484A2D0083772D /* iina-plugin */,
 				49542976216C34950058F680 /* OpenInIINA */,
@@ -3258,6 +3287,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C494C495448000000000012 /* LilithJamView.swift in Sources */,
+				4C494C495448000000000013 /* LilithAudioTap.swift in Sources */,
+				4C494C495448000000000014 /* AudioFeatureFrame.swift in Sources */,
+				4C494C495448000000000015 /* LilithPreset.swift in Sources */,
+				4C494C495448000000000016 /* LilithVisualizerModel.swift in Sources */,
+				4C494C495448000000000017 /* LilithAudioAnalyzer.swift in Sources */,
+				4C494C495448000000000018 /* LilithMetalRenderer.swift in Sources */,
 				E3EC8C432F94330400FBB51E /* Dialog.swift in Sources */,
 				E35306FA214808AB008FE492 /* JavascriptAPIEvent.swift in Sources */,
 				849581F11F02728700D3B359 /* InitialWindowController.swift in Sources */,

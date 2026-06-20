@@ -2477,13 +2477,14 @@ class PlayerCore: NSObject {
       if overrideAutoSwitchToMusicMode {
         log("Skipping music mode auto-switch because overrideAutoSwitchToMusicMode is true", level: .verbose)
       } else if audioStatus == .isAudio && !isInMiniPlayer && !mainWindow.fsState.isFullscreen {
-        log("Current media is audio: auto-switching to mini player")
-        switchToMiniPlayer(automatically: true, showMiniPlayer: false)
+        log("Current media is audio: showing Lilith Jam Sessions visualizer")
+        mainWindow.updateLilithJamMode(isAudio: audioStatus)
       } else if audioStatus == .notAudio && isInMiniPlayer {
         log("Current media is not audio: auto-switching to normal window")
         switchBackFromMiniPlayer(automatically: true, showMainWindow: false)
       }
     }
+    mainWindow.updateLilithJamMode(isAudio: audioStatus)
 
     if isInMiniPlayer {
       miniPlayer.refreshArtworkVisibility()

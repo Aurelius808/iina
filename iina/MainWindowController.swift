@@ -90,6 +90,7 @@ class MainWindowController: PlayerWindowController {
   var osdView: OSDView!
   var additionalInfoView: AdditionalInfoView!
   var bufferIndicatorView: BufferIndicatorView!
+  lazy var lilithJamView = LilithJamView(player: player)
   var timePreviewView: TimePreviewView!
   var titlebarOnTopButton: NSButton!
   var thumbnailPeekView: ThumbnailPeekView!
@@ -556,6 +557,7 @@ class MainWindowController: PlayerWindowController {
 
     // video view
     addVideoViewToWindow()
+    installLilithJamView()
     player.initVideo()
     videoView.postsFrameChangedNotifications = true
 
@@ -744,6 +746,24 @@ class MainWindowController: PlayerWindowController {
     cv.addSubview(videoView, positioned: .below, relativeTo: nil)
     videoView.translatesAutoresizingMaskIntoConstraints = false
     setupVideoViewConstraints()
+  }
+
+  func installLilithJamView() {
+    guard let cv = window?.contentView, lilithJamView.superview == nil else { return }
+    cv.addSubview(lilithJamView, positioned: .above, relativeTo: videoView)
+    lilithJamView.isHidden = true
+    NSLayoutConstraint.activate([
+      lilithJamView.leadingAnchor.constraint(equalTo: videoView.leadingAnchor),
+      lilithJamView.trailingAnchor.constraint(equalTo: videoView.trailingAnchor),
+      lilithJamView.topAnchor.constraint(equalTo: videoView.topAnchor),
+      lilithJamView.bottomAnchor.constraint(equalTo: videoView.bottomAnchor),
+    ])
+  }
+
+  func updateLilithJamMode(isAudio: PlaybackInfo.MediaIsAudioStatus? = nil) {
+    guard loaded else { return }
+    let active = (isAudio ?? player.info.isAudio) == .isAudio && !player.isInMiniPlayer
+    lilithJamView.setActive(active)
   }
 
   private func setupVideoViewConstraints() {
@@ -1019,6 +1039,8 @@ class MainWindowController: PlayerWindowController {
       isDragging = false
     } else if sidebars.handleMouseUp(event) {
       // sidebar handled it (resize finish or click-outside-to-dismiss)
+    } else if !lilithJamView.isHidden && videoView.frame.contains(event.locationInWindow) {
+      lilithJamView.advancePreset()
     } else {
       if event.clickCount == 2 && event.inAnyOf([titleBarView]) {
         let userDefault = UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick")

@@ -157,12 +157,12 @@ esac
 SCRIPT_PATH=$(realpath "$0")
 ROOT_PATH=$(dirname "$SCRIPT_PATH")
 
-if [[ $(basename "$ROOT_PATH") != "$PROJECT_NAME" ]]; then
-  while [[ "$ROOT_PATH" != "/" && $(basename "$ROOT_PATH") != "$PROJECT_NAME" ]]; do
+if [[ ! -d "$ROOT_PATH/iina.xcodeproj" && $(basename "$ROOT_PATH") != "$PROJECT_NAME" ]]; then
+  while [[ "$ROOT_PATH" != "/" && ! -d "$ROOT_PATH/iina.xcodeproj" && $(basename "$ROOT_PATH") != "$PROJECT_NAME" ]]; do
     ROOT_PATH=$(dirname "$ROOT_PATH")
   done
-  if [[ "$ROOT_PATH" == "/" ]]; then
-    echo -e "${RED}Unable to find the root directory '$PROJECT_NAME' containing the script file.${NC}" >&2
+  if [[ "$ROOT_PATH" == "/" || ! -d "$ROOT_PATH/iina.xcodeproj" ]]; then
+    echo -e "${RED}Unable to find the project root containing iina.xcodeproj.${NC}" >&2
     exit 1
   fi
 fi
