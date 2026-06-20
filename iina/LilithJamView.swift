@@ -97,8 +97,8 @@ final class LilithJamView: NSView {
   private func installPresetControls() {
     controlsView.translatesAutoresizingMaskIntoConstraints = false
     controlsView.wantsLayer = true
-    controlsView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.72).cgColor
-    controlsView.layer?.borderColor = NSColor.white.withAlphaComponent(0.18).cgColor
+    controlsView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.84).cgColor
+    controlsView.layer?.borderColor = NSColor.white.withAlphaComponent(0.26).cgColor
     controlsView.layer?.borderWidth = 1
     controlsView.layer?.cornerRadius = 8
     controlsView.layer?.masksToBounds = true
@@ -111,13 +111,13 @@ final class LilithJamView: NSView {
     presetPopup.addItems(withTitles: model.presets.map(\.name))
     presetPopup.target = self
     presetPopup.action = #selector(selectPresetFromPopup(_:))
-    presetPopup.controlSize = .small
+    presetPopup.controlSize = .regular
     presetPopup.setAccessibilityLabel("Visuals")
 
     nextPresetButton.target = self
     nextPresetButton.action = #selector(selectNextPreset)
     nextPresetButton.bezelStyle = .texturedRounded
-    nextPresetButton.controlSize = .small
+    nextPresetButton.controlSize = .regular
     nextPresetButton.setAccessibilityLabel("Next visual")
     if #available(macOS 11.0, *) {
       nextPresetButton.title = ""
@@ -135,15 +135,15 @@ final class LilithJamView: NSView {
     controlsView.addSubview(stack)
     addSubview(controlsView)
     NSLayoutConstraint.activate([
-      controlsView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
-      controlsView.topAnchor.constraint(equalTo: topAnchor, constant: 14),
-      stack.leadingAnchor.constraint(equalTo: controlsView.leadingAnchor, constant: 10),
-      stack.trailingAnchor.constraint(equalTo: controlsView.trailingAnchor, constant: -10),
-      stack.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 8),
-      stack.bottomAnchor.constraint(equalTo: controlsView.bottomAnchor, constant: -8),
-      presetPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 142),
-      nextPresetButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 28),
-      nextPresetButton.heightAnchor.constraint(equalToConstant: 24),
+      controlsView.centerXAnchor.constraint(equalTo: centerXAnchor),
+      controlsView.centerYAnchor.constraint(equalTo: centerYAnchor),
+      stack.leadingAnchor.constraint(equalTo: controlsView.leadingAnchor, constant: 14),
+      stack.trailingAnchor.constraint(equalTo: controlsView.trailingAnchor, constant: -14),
+      stack.topAnchor.constraint(equalTo: controlsView.topAnchor, constant: 10),
+      stack.bottomAnchor.constraint(equalTo: controlsView.bottomAnchor, constant: -10),
+      presetPopup.widthAnchor.constraint(greaterThanOrEqualToConstant: 190),
+      nextPresetButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 34),
+      nextPresetButton.heightAnchor.constraint(equalToConstant: 28),
     ])
   }
 

@@ -750,7 +750,7 @@ class MainWindowController: PlayerWindowController {
 
   func installLilithJamView() {
     guard let cv = window?.contentView, lilithJamView.superview == nil else { return }
-    cv.addSubview(lilithJamView, positioned: .above, relativeTo: videoView)
+    cv.addSubview(lilithJamView, positioned: .above, relativeTo: nil)
     lilithJamView.isHidden = true
     NSLayoutConstraint.activate([
       lilithJamView.leadingAnchor.constraint(equalTo: videoView.leadingAnchor),

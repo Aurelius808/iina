@@ -1,4 +1,5 @@
 import XCTest
+import MetalKit
 @testable import LilithVisualCore
 
 final class LilithVisualCoreTests: XCTestCase {
@@ -27,6 +28,18 @@ final class LilithVisualCoreTests: XCTestCase {
     LilithPreset.builtIns.forEach { _ in model.advancePreset() }
 
     XCTAssertEqual(model.state.preset.id, first)
+    XCTAssertGreaterThanOrEqual(model.presets.count, 10)
+    XCTAssertEqual(Set(model.presets.map(\.id)).count, model.presets.count)
+  }
+
+  func testMetalRendererCompilesBuiltInVisuals() throws {
+    guard let device = MTLCreateSystemDefaultDevice() else {
+      throw XCTSkip("Metal unavailable")
+    }
+    let view = MTKView(frame: CGRect(x: 0, y: 0, width: 320, height: 180), device: device)
+    let model = LilithVisualizerModel(presets: LilithPreset.builtIns)
+
+    XCTAssertNotNil(LilithMetalRenderer(mtkView: view, model: model))
   }
 
   func testReducedMotionCapsIntensity() {
